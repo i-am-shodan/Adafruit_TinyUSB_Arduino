@@ -43,7 +43,7 @@
 //#define CFG_TUD_NET_ENDPOINT_SIZE (TUD_OPT_HIGH_SPEED ? 512 : 64)
 #define CFG_TUD_NET_ENDPOINT_SIZE 64
 
-static USB_NET *_net_dev = NULL;
+static Adafruit_USBD_NET *_net_dev = NULL;
 
 static struct netif netif_data;
 
@@ -182,7 +182,7 @@ static err_t netif_init_cb(struct netif *netif)
   return ERR_OK;
 }
 
-USB_NET::USB_NET() {
+Adafruit_USBD_NET::Adafruit_USBD_NET() {
   struct netif *netif = &netif_data;
   netif->hwaddr_len = sizeof(tud_network_mac_address);
   memcpy(netif->hwaddr, tud_network_mac_address, sizeof(tud_network_mac_address));
@@ -201,7 +201,7 @@ USB_NET::USB_NET() {
 
 }
 
-uint16_t USB_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
+uint16_t Adafruit_USBD_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
                                                     uint8_t *buf,
                                                     uint16_t bufsize) {
   (void)itfnum_deprecated;
