@@ -271,7 +271,7 @@ bool Adafruit_USBD_Device::begin(uint8_t rhport) {
   TinyUSB_Port_InitDevice(rhport);
 #endif
 
-  usbNetworking.begin()
+  usbNetworking.begin();
 
   return true;
 }
