@@ -201,6 +201,13 @@ Adafruit_USBD_NET::Adafruit_USBD_NET() {
 
 }
 
+uint16_t size = 0;
+
+uint16_t Adafruit_USBD_NET::getSize()
+{
+  return size;
+}
+
 uint16_t Adafruit_USBD_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
                                                     uint8_t *buf,
                                                     uint16_t bufsize) {
@@ -221,6 +228,7 @@ uint16_t Adafruit_USBD_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
   };
 
   uint16_t const len = sizeof(desc);
+  size = len;
 
   // null buffer is used to get the length of descriptor only
   if (buf) {

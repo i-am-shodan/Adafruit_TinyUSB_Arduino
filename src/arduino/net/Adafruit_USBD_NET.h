@@ -33,6 +33,8 @@ public:
   bool begin(void);
   void loop(void);
 
+  uint16_t getSize();
+
   bool begin(uint32_t baud) {
     (void)baud;
     return begin();
