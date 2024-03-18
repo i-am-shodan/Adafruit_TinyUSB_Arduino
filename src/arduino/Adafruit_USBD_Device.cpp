@@ -258,8 +258,8 @@ bool Adafruit_USBD_Device::begin(uint8_t rhport) {
   uint8_t const desc_cdc[TUD_CDC_DESC_LEN + 145] = {
     TUD_CDC_DESCRIPTOR(itfnum, strid, 0x85, 64, 0x03, 0x84, 64),
     TUD_RNDIS_DESCRIPTOR(itfnum2, strid2, 0x81, 8, 0x02, 0x83, CFG_TUD_NET_ENDPOINT_SIZE),
-    TUD_CDC_ECM_DESCRIPTOR(itfnum2, strid2, STRID_MAC, 0x81, 64, 0x02, 0x83, CFG_TUD_NET_ENDPOINT_SIZE, CFG_TUD_NET_MTU),
-  }
+    TUD_CDC_ECM_DESCRIPTOR(itfnum2, strid2, STRID_MAC, 0x81, 64, 0x02, 0x83, CFG_TUD_NET_ENDPOINT_SIZE, CFG_TUD_NET_MTU)
+  };
 
   memcpy(_desc_cfg + _desc_cfg_len, desc_cdc, sizeof(desc_cdc));
   _desc_cfg_len += sizeof(desc_cdc);
