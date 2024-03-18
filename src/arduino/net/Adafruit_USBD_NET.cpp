@@ -114,8 +114,6 @@ static err_t ip4_output_fn(struct netif *netif, struct pbuf *p, const ip4_addr_t
 
 bool tud_network_recv_cb(const uint8_t *src, uint16_t size)
 {
-  Serial.println("Adding tud_network_recv_cb");
-
   /* this shouldn't happen, but if we get another packet before
   parsing the previous, we must signal our inability to accept it */
   if (received_frame) return false;
@@ -185,8 +183,6 @@ static err_t netif_init_cb(struct netif *netif)
 }
 
 USB_NET::USB_NET() {
-  Serial.println("USB_NET constructor");  
-
   struct netif *netif = &netif_data;
   netif->hwaddr_len = sizeof(tud_network_mac_address);
   memcpy(netif->hwaddr, tud_network_mac_address, sizeof(tud_network_mac_address));
@@ -234,17 +230,13 @@ uint16_t USB_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
     memcpy(buf, desc, len);
   }
 
-  Serial.println("Sent descriptor");  
   return len;
 }
 
 bool USB_NET::begin(void) {
   if (!TinyUSBDevice.addInterface(*this)) {
-    Serial.println("Error adding interface");  
     return false;
   }
-
-  Serial.println("Adding interface");
 
   _net_dev = this;
   return true;
@@ -256,8 +248,7 @@ void USB_NET::loop()
 
   /* handle any packet received by tud_network_recv_cb() */
   if (received_frame)
-  {
-    Serial.println("Got frame");  
+  { 
     ethernet_input(received_frame, &netif_data);
     pbuf_free(received_frame);
     received_frame = NULL;
