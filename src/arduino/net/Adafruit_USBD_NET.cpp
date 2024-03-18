@@ -217,7 +217,7 @@ uint16_t USB_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
   uint8_t const ep_in = TinyUSBDevice.allocEndpoint(TUSB_DIR_IN);
   uint8_t const ep_out = TinyUSBDevice.allocEndpoint(TUSB_DIR_OUT);
 
-  uint8_t strid = addStringDescriptor("TinyUSB Network Interface");
+  uint8_t strid = TinyUSBDevice.addStringDescriptor("TinyUSB Network Interface");
 
   uint8_t const desc[] = {
       TUD_RNDIS_DESCRIPTOR(itfnum, strid, ep_notif, 8, ep_out, ep_in, CFG_TUD_NET_ENDPOINT_SIZE),
