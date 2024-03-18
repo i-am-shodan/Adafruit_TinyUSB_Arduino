@@ -208,7 +208,7 @@ uint16_t USB_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
   //_strid = 4; // STRID_INTERFACE; todo
   uint8_t STRID_MAC = 5; // todo
 
-  uint8_t const itfnum = TinyUSBDevice.allocInterface(2);
+  uint8_t const itfnum = TinyUSBDevice.allocInterface(3);
   uint8_t const ep_notif = TinyUSBDevice.allocEndpoint(TUSB_DIR_IN);
   uint8_t const ep_in = TinyUSBDevice.allocEndpoint(TUSB_DIR_IN);
   uint8_t const ep_out = TinyUSBDevice.allocEndpoint(TUSB_DIR_OUT);
