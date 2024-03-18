@@ -28,12 +28,12 @@
 #include "lwip/timeouts.h"
 #include "lwip/ethip6.h"
 
-#include <dhserver.h>
-#include <dnserver.h>
+#include "dhserver.h"
+#include "dnserver.h"
 
 #include <HardwareSerial.h>
 
-#include "USB_NET.h"
+#include "Adafruit_USBD_NET.h"
 
 //--------------------------------------------------------------------+
 // MACRO TYPEDEF CONSTANT ENUM DECLARATION
