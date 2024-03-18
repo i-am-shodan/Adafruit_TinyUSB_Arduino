@@ -269,3 +269,8 @@ void Adafruit_USBD_NET::loop()
     tud_network_recv_renew();
   }
 }
+
+bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_request_t const* request)
+{
+  return false;
+}
