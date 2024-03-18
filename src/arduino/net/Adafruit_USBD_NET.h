@@ -26,9 +26,9 @@
 
 #include "arduino/Adafruit_USBD_Device.h"
 
-class USB_NET : public Adafruit_USBD_Interface {
+class Adafruit_USBD_NET : public Adafruit_USBD_Interface {
 public:
-  USB_NET();
+  Adafruit_USBD_NET();
 
   bool begin(void);
   void loop(void);

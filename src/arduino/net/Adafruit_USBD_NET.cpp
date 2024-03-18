@@ -233,7 +233,7 @@ uint16_t USB_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
   return len;
 }
 
-bool USB_NET::begin(void) {
+bool Adafruit_USBD_NET::begin(void) {
   if (!TinyUSBDevice.addInterface(*this)) {
     return false;
   }
@@ -242,7 +242,7 @@ bool USB_NET::begin(void) {
   return true;
 }
 
-void USB_NET::loop()
+void Adafruit_USBD_NET::loop()
 {
   tud_task();
 
