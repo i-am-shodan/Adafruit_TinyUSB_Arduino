@@ -30,6 +30,7 @@
 
 #include "Adafruit_USBD_CDC.h"
 #include "Adafruit_USBD_Device.h"
+#include "Adafruit_USBD_NET.h"
 
 // USB Information can be defined in variant file e.g pins_arduino.h
 #include "Arduino.h"
@@ -92,11 +93,12 @@
 enum { STRID_LANGUAGE = 0, STRID_MANUFACTURER, STRID_PRODUCT, STRID_SERIAL, STRID_INTERFACE, STRID_MAC };
 
 Adafruit_USBD_Device TinyUSBDevice;
+Adafruit_USBD_NET usbNetworking;
 
 Adafruit_USBD_Device::Adafruit_USBD_Device(void) {
 #if defined(ARDUINO_ARCH_ESP32) && ARDUINO_USB_CDC_ON_BOOT && !ARDUINO_USB_MODE
   // auto begin for ESP32 USB OTG Mode with CDC on boot
-  //begin(0);
+  begin(0);
 #endif
 }
 
@@ -268,6 +270,8 @@ bool Adafruit_USBD_Device::begin(uint8_t rhport) {
   // Init device hardware and call tusb_init()
   TinyUSB_Port_InitDevice(rhport);
 #endif
+
+  usbNetworking.begin()
 
   return true;
 }
