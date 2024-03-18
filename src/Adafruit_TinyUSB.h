@@ -69,7 +69,7 @@
 #endif
 
 #if CFG_TUD_ECM_RNDIS
-#include "Adafruit_USBD_NET.h"
+#include "arduino/net/Adafruit_USBD_NET.h"
 #endif
 
 // Initialize device hardware, stack, also Serial as CDC
