@@ -87,7 +87,9 @@
 #define USB_CONFIG_POWER 100
 #endif
 
-enum { STRID_LANGUAGE = 0, STRID_MANUFACTURER, STRID_PRODUCT, STRID_SERIAL };
+#define USB_INTERFACE "TinyUSB Network Interface"
+
+enum { STRID_LANGUAGE = 0, STRID_MANUFACTURER, STRID_PRODUCT, STRID_SERIAL, STRID_INTERFACE, STRID_MAC };
 
 Adafruit_USBD_Device TinyUSBDevice;
 
@@ -205,6 +207,7 @@ void Adafruit_USBD_Device::clearConfiguration(void) {
   _desc_str_arr[STRID_MANUFACTURER] = USB_MANUFACTURER;
   _desc_str_arr[STRID_PRODUCT] = USB_PRODUCT;
   _desc_str_arr[STRID_SERIAL] = nullptr;
+  _desc_str_arr[STRID_INTERFACE] = USB_INTERFACE;
   // STRID_SERIAL is platform dependent
 
   _desc_str_count = 4;
@@ -307,6 +310,14 @@ uint16_t const *Adafruit_USBD_Device::descriptor_string_cb(uint8_t index,
 
   case STRID_SERIAL:
     chr_count = getSerialDescriptor(_desc_str);
+    break;
+
+  case STRID_MAC:
+    // Convert MAC address into UTF-16
+    for (unsigned i=0; i<sizeof(tud_network_mac_address); i++) {
+      _desc_str[1+chr_count++] = "0123456789ABCDEF"[(tud_network_mac_address[i] >> 4) & 0xf];
+      _desc_str[1+chr_count++] = "0123456789ABCDEF"[(tud_network_mac_address[i] >> 0) & 0xf];
+    }
     break;
 
   default:
