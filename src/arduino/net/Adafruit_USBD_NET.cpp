@@ -28,6 +28,8 @@
 #include "lwip/timeouts.h"
 #include "lwip/ethip6.h"
 
+#include "class/net/net_device.h"
+
 #include "dhserver.h"
 #include "dnserver.h"
 
@@ -214,13 +216,14 @@ uint16_t USB_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
     return TUD_RNDIS_DESC_LEN;
   }
 
-  uint8_t const itfnum = TinyUSBDevice.allocInterface(1);
+  uint8_t const itfnum = TinyUSBDevice.allocInterface(2);
   uint8_t const ep_notif = TinyUSBDevice.allocEndpoint(TUSB_DIR_IN);
   uint8_t const ep_in = TinyUSBDevice.allocEndpoint(TUSB_DIR_IN);
   uint8_t const ep_out = TinyUSBDevice.allocEndpoint(TUSB_DIR_OUT);
 
   uint8_t const desc[] = {
       TUD_RNDIS_DESCRIPTOR(itfnum, _strid, ep_notif, 8, ep_out, ep_in, CFG_TUD_NET_ENDPOINT_SIZE)
+      TUD_CDC_ECM_DESCRIPTOR(itfnum, STRID_INTERFACE, STRID_MAC, ep_notif, 64, ep_out, ep_in, CFG_TUD_NET_ENDPOINT_SIZE, CFG_TUD_NET_MTU),
   };
 
   uint16_t const len = sizeof(desc);
@@ -235,9 +238,9 @@ uint16_t USB_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
 }
 
 bool USB_NET::begin(void) {
-  TinyUSBDevice.begin(0);
+  //TinyUSBDevice.begin(0);
 
-  setStringDescriptor("TinyUSB test");
+  //setStringDescriptor("TinyUSB test");
 
   if (!TinyUSBDevice.addInterface(*this)) {
     Serial.println("Error adding interface");  
@@ -246,8 +249,10 @@ bool USB_NET::begin(void) {
 
   Serial.println("Adding interface");
 
-  while (!TinyUSBDevice.mounted())
-    delay(1); // wait for native usb
+  _net_dev = this;
+
+  //while (!TinyUSBDevice.mounted())
+  //  delay(1); // wait for native usb
 
   return true;
 }
