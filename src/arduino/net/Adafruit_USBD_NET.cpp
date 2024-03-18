@@ -210,6 +210,7 @@ uint16_t USB_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
                                                     uint16_t bufsize) {
   (void)itfnum_deprecated;
   _strid = 4; // STRID_INTERFACE; todo
+  uint8_t STRID_MAC = 5; // todo
 
   // null buffer is used to get the length of descriptor only
   if (!buf) {
@@ -223,7 +224,7 @@ uint16_t USB_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
 
   uint8_t const desc[] = {
       TUD_RNDIS_DESCRIPTOR(itfnum, _strid, ep_notif, 8, ep_out, ep_in, CFG_TUD_NET_ENDPOINT_SIZE),
-      TUD_CDC_ECM_DESCRIPTOR(itfnum, STRID_INTERFACE, STRID_MAC, ep_notif, 64, ep_out, ep_in, CFG_TUD_NET_ENDPOINT_SIZE, CFG_TUD_NET_MTU),
+      TUD_CDC_ECM_DESCRIPTOR(itfnum, _strid, STRID_MAC, ep_notif, 64, ep_out, ep_in, CFG_TUD_NET_ENDPOINT_SIZE, CFG_TUD_NET_MTU),
   };
 
   uint16_t const len = sizeof(desc);
