@@ -30,7 +30,6 @@
 
 #include "Adafruit_USBD_CDC.h"
 #include "Adafruit_USBD_Device.h"
-#include "net/Adafruit_USBD_NET.h"
 
 // USB Information can be defined in variant file e.g pins_arduino.h
 #include "Arduino.h"
@@ -93,7 +92,6 @@
 enum { STRID_LANGUAGE = 0, STRID_MANUFACTURER, STRID_PRODUCT, STRID_SERIAL, STRID_INTERFACE, STRID_MAC };
 
 Adafruit_USBD_Device TinyUSBDevice;
-Adafruit_USBD_NET usbNetworking;
 
 Adafruit_USBD_Device::Adafruit_USBD_Device(void) {
 #if defined(ARDUINO_ARCH_ESP32) && ARDUINO_USB_CDC_ON_BOOT && !ARDUINO_USB_MODE
@@ -253,8 +251,15 @@ bool Adafruit_USBD_Device::begin(uint8_t rhport) {
   // follow USBCDC cdc descriptor
   uint8_t itfnum = allocInterface(2);
   uint8_t strid = addStringDescriptor("TinyUSB Serial");
+
+  uint8_t const itfnum = allocInterface(2);
+  uint8_t strid2 = addStringDescriptor("TinyUSB Network Interface");
+
   uint8_t const desc_cdc[TUD_CDC_DESC_LEN] = {
-      TUD_CDC_DESCRIPTOR(itfnum, strid, 0x85, 64, 0x03, 0x84, 64)};
+    TUD_CDC_DESCRIPTOR(itfnum, strid, 0x85, 64, 0x03, 0x84, 64),
+    TUD_RNDIS_DESCRIPTOR(itfnum, strid2, ep_notif, 8, ep_out, ep_in, CFG_TUD_NET_ENDPOINT_SIZE),
+    TUD_CDC_ECM_DESCRIPTOR(itfnum, strid2, STRID_MAC, ep_notif, 64, ep_out, ep_in, CFG_TUD_NET_ENDPOINT_SIZE, CFG_TUD_NET_MTU),
+  }
 
   memcpy(_desc_cfg + _desc_cfg_len, desc_cdc, sizeof(desc_cdc));
   _desc_cfg_len += sizeof(desc_cdc);
@@ -270,8 +275,6 @@ bool Adafruit_USBD_Device::begin(uint8_t rhport) {
   // Init device hardware and call tusb_init()
   TinyUSB_Port_InitDevice(rhport);
 #endif
-
-  usbNetworking.begin();
 
   return true;
 }
