@@ -215,7 +215,18 @@ uint16_t Adafruit_USBD_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
   //_strid = 4; // STRID_INTERFACE; todo
   uint8_t STRID_MAC = 5; // todo
 
-  uint8_t const itfnum = TinyUSBDevice.allocInterface(3);
+  uint16_t const desc_len = 145;
+
+  // null buffer is used to get the length of descriptor only
+  if (!buf) {
+    return desc_len;
+  }
+
+  if (bufsize < desc_len) {
+    return 0;
+  }
+
+  uint8_t const itfnum = TinyUSBDevice.allocInterface(2);
   uint8_t const ep_notif = TinyUSBDevice.allocEndpoint(TUSB_DIR_IN);
   uint8_t const ep_in = TinyUSBDevice.allocEndpoint(TUSB_DIR_IN);
   uint8_t const ep_out = TinyUSBDevice.allocEndpoint(TUSB_DIR_OUT);
@@ -228,15 +239,10 @@ uint16_t Adafruit_USBD_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
   };
 
   uint16_t const len = sizeof(desc);
-  size = len;
+  size = itfnum;
 
   // null buffer is used to get the length of descriptor only
-  if (buf) {
-    if (bufsize < len) {
-      return 0;
-    }
-    memcpy(buf, desc, len);
-  }
+  memcpy(buf, desc, len);
 
   return len;
 }
