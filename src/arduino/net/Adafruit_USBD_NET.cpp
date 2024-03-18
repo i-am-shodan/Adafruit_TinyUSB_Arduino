@@ -207,6 +207,7 @@ uint16_t USB_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
                                                     uint8_t *buf,
                                                     uint16_t bufsize) {
   (void)itfnum_deprecated;
+  _strid = 4; // STRID_INTERFACE; todo
 
   // null buffer is used to get the length of descriptor only
   if (!buf) {
@@ -219,7 +220,7 @@ uint16_t USB_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
   uint8_t const ep_out = TinyUSBDevice.allocEndpoint(TUSB_DIR_OUT);
 
   uint8_t const desc[] = {
-      TUD_RNDIS_DESCRIPTOR(itfnum, STRID_INTERFACE, ep_notif, 8, ep_out, ep_in, CFG_TUD_NET_ENDPOINT_SIZE)
+      TUD_RNDIS_DESCRIPTOR(itfnum, _strid, ep_notif, 8, ep_out, ep_in, CFG_TUD_NET_ENDPOINT_SIZE)
   };
 
   uint16_t const len = sizeof(desc);
