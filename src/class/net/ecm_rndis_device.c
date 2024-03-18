@@ -298,7 +298,7 @@ bool netd_control_xfer_cb (uint8_t rhport, uint8_t stage, tusb_control_request_t
           break;
 
           // unsupported request
-          default: return false;
+          default: return true;
         }
       break;
 
@@ -331,7 +331,7 @@ bool netd_control_xfer_cb (uint8_t rhport, uint8_t stage, tusb_control_request_t
       break;
 
       // unsupported request
-      default: return false;
+      default: return true;
     }
   }
   else if ( stage == CONTROL_STAGE_DATA )
