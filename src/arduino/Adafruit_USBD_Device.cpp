@@ -30,7 +30,7 @@
 
 #include "Adafruit_USBD_CDC.h"
 #include "Adafruit_USBD_Device.h"
-#include "Adafruit_USBD_NET.h"
+#include "net/Adafruit_USBD_NET.h"
 
 // USB Information can be defined in variant file e.g pins_arduino.h
 #include "Arduino.h"
