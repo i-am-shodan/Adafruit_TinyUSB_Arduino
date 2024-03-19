@@ -250,7 +250,7 @@ bool Adafruit_USBD_Device::begin(uint8_t rhport) {
 #if defined(ARDUINO_ARCH_ESP32)
 #if ARDUINO_USB_CDC_ON_BOOT && !ARDUINO_USB_MODE
   // follow USBCDC cdc descriptor
-  uint8_t itfnum = allocInterface(4);
+  uint8_t itfnum = allocInterface(2);
   uint8_t strid = addStringDescriptor("TinyUSB Serial");
 
   uint8_t const desc_cdc[TUD_CDC_DESC_LEN + TUD_CDC_NCM_DESC_LEN] = {
