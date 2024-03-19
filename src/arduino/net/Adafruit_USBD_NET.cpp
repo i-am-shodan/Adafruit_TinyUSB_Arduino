@@ -227,7 +227,6 @@ uint16_t Adafruit_USBD_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
   };
 
   uint16_t const len = sizeof(desc);
-  size = itfnum;
 
   // null buffer is used to get the length of descriptor only
   memcpy(buf, desc, len);
