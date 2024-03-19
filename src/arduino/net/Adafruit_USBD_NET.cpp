@@ -211,7 +211,7 @@ uint16_t Adafruit_USBD_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
     return TUD_CDC_NCM_DESC_LEN;
   }
 
-  if (bufsize < desc_len) {
+  if (bufsize < TUD_CDC_NCM_DESC_LEN) {
     return 0;
   }
 
