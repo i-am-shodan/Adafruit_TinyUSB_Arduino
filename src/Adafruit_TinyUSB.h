@@ -68,7 +68,7 @@
 #include "arduino/video/Adafruit_USBD_Video.h"
 #endif
 
-#if CFG_TUD_ECM_RNDIS
+#if defined(CFG_TUD_ECM_RNDIS) || defined(CFG_TUD_NCM)
 #include "arduino/net/Adafruit_USBD_NET.h"
 #endif
 
