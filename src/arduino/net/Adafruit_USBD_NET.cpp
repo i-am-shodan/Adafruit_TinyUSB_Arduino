@@ -142,7 +142,6 @@ uint16_t tud_network_xmit_cb(uint8_t *dst, void *ref, uint16_t arg)
   //(void)arg; /* unused for this example */
 
   return pbuf_copy_partial(p, dst, p->tot_len, 0);
-  //return 0;
 }
 
 void tud_network_init_cb(void)
@@ -198,14 +197,6 @@ Adafruit_USBD_NET::Adafruit_USBD_NET() {
 
   dhserv_init(&dhcp_config);
   dnserv_init(IP_ADDR_ANY, 53, dns_query_proc);
-
-}
-
-uint16_t size = 0;
-
-uint16_t Adafruit_USBD_NET::getSize()
-{
-  return size;
 }
 
 uint16_t Adafruit_USBD_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
@@ -215,11 +206,9 @@ uint16_t Adafruit_USBD_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
   //_strid = 4; // STRID_INTERFACE; todo
   uint8_t STRID_MAC = 5; // todo
 
-  uint16_t const desc_len = 145;
-
   // null buffer is used to get the length of descriptor only
   if (!buf) {
-    return desc_len;
+    return TUD_CDC_NCM_DESC_LEN;
   }
 
   if (bufsize < desc_len) {
@@ -234,8 +223,7 @@ uint16_t Adafruit_USBD_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
   uint8_t strid = TinyUSBDevice.addStringDescriptor("TinyUSB Network Interface");
 
   uint8_t const desc[] = {
-      TUD_RNDIS_DESCRIPTOR(itfnum, strid, ep_notif, 8, ep_out, ep_in, CFG_TUD_NET_ENDPOINT_SIZE),
-      TUD_CDC_ECM_DESCRIPTOR(itfnum, strid, STRID_MAC, ep_notif, 64, ep_out, ep_in, CFG_TUD_NET_ENDPOINT_SIZE, CFG_TUD_NET_MTU),
+      TUD_CDC_NCM_DESCRIPTOR(0, strid, STRID_MAC, 0x81, 64, 0x02, 0x82, CFG_TUD_NET_ENDPOINT_SIZE, CFG_TUD_NET_MTU),
   };
 
   uint16_t const len = sizeof(desc);
@@ -256,8 +244,9 @@ bool Adafruit_USBD_NET::begin(void) {
   return true;
 }
 
-void Adafruit_USBD_NET::loop()
+bool Adafruit_USBD_NET::loop()
 {
+  ret = false;
   tud_task();
 
   /* handle any packet received by tud_network_recv_cb() */
@@ -267,5 +256,6 @@ void Adafruit_USBD_NET::loop()
     pbuf_free(received_frame);
     received_frame = NULL;
     tud_network_recv_renew();
+    ret = true;
   }
 }

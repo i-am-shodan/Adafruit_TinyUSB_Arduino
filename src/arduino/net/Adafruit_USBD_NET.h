@@ -31,14 +31,7 @@ public:
   Adafruit_USBD_NET();
 
   bool begin(void);
-  void loop(void);
-
-  uint16_t getSize();
-
-  bool begin(uint32_t baud) {
-    (void)baud;
-    return begin();
-  }
+  bool loop(void);
 
   // from Adafruit_USBD_Interface
   virtual uint16_t getInterfaceDescriptor(uint8_t itfnum_deprecated,

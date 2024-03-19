@@ -22,55 +22,75 @@
  * THE SOFTWARE.
  */
 
-#ifndef ADAFRUIT_TINYUSB_API_H_
-#define ADAFRUIT_TINYUSB_API_H_
+#ifndef ADAFRUIT_TINYUSB_H_
+#define ADAFRUIT_TINYUSB_H_
 
-#include <stdbool.h>
-#include <stdint.h>
-
-// API Version, need to be updated when there is changes for
-// TinyUSB_API, USBD_CDC, USBD_Device, USBD_Interface,
-#define TINYUSB_API_VERSION 30000
-
-//--------------------------------------------------------------------+
-// Core API
-// Should be called by BSP Core to initialize, process task
-// Weak function allow compile arduino core before linking with this library
-//--------------------------------------------------------------------+
-#ifdef __cplusplus
-extern "C" {
+// Error message for Core that must select TinyUSB via menu
+#if !defined(USE_TINYUSB) &&                                                   \
+    (defined(ARDUINO_ARCH_SAMD) ||                                             \
+     (defined(ARDUINO_ARCH_RP2040) && !defined(ARDUINO_ARCH_MBED)))
+#error TinyUSB is not selected, please select it in "Tools->Menu->USB Stack"
 #endif
 
-// Called by core/sketch to initialize usb device hardware and stack
-// This also initialize Serial as CDC device
-void TinyUSB_Device_Init(uint8_t rhport) __attribute__((weak));
-
-// Called by core/sketch to handle device event
-void TinyUSB_Device_Task(void) __attribute__((weak));
-
-// Called by core/sketch to flush write on CDC
-void TinyUSB_Device_FlushCDC(void) __attribute__((weak));
-
-#ifdef __cplusplus
-}
+// ESP32 out-of-sync
+#ifdef ARDUINO_ARCH_ESP32
+#include "arduino/ports/esp32/tusb_config_esp32.h"
 #endif
 
-//--------------------------------------------------------------------+
-// Port API
-// Must be implemented by each BSP core/platform
-//--------------------------------------------------------------------+
+#include "tusb_option.h"
 
-// To enter/reboot to bootloader
-// usually when host disconnects cdc at baud 1200 (touch 1200)
-void TinyUSB_Port_EnterDFU(void);
+// Device
+#if CFG_TUD_ENABLED
 
-// Init device hardware.
-// Called by TinyUSB_Device_Init()
-void TinyUSB_Port_InitDevice(uint8_t rhport);
+#include "arduino/Adafruit_USBD_Device.h"
 
-// Get unique serial number, needed for Serial String Descriptor
-// Fill serial_id (raw bytes) and return its length (limit to 16 bytes)
-// Note: Serial descriptor can be overwritten by user API
-uint8_t TinyUSB_Port_GetSerialNumber(uint8_t serial_id[16]);
+#if CFG_TUD_CDC
+#include "arduino/Adafruit_USBD_CDC.h"
+#endif
+
+#if CFG_TUD_HID
+#include "arduino/hid/Adafruit_USBD_HID.h"
+#endif
+
+#if CFG_TUD_MIDI
+#include "arduino/midi/Adafruit_USBD_MIDI.h"
+#endif
+
+#if CFG_TUD_MSC
+#include "arduino/msc/Adafruit_USBD_MSC.h"
+#endif
+
+#if CFG_TUD_VENDOR
+#include "arduino/webusb/Adafruit_USBD_WebUSB.h"
+#endif
+
+#if CFG_TUD_VIDEO
+#include "arduino/video/Adafruit_USBD_Video.h"
+#endif
+
+#if defined(CFG_TUD_ECM_RNDIS) || defined(CFG_TUD_NCM)
+#include "arduino/net/Adafruit_USBD_NET.h"
+#endif
+
+// Initialize device hardware, stack, also Serial as CDC
+// Wrapper for TinyUSBDevice.begin(rhport)
+void TinyUSB_Device_Init(uint8_t rhport);
 
 #endif
+
+// Host
+#if CFG_TUH_ENABLED
+
+#include "arduino/Adafruit_USBH_Host.h"
+
+#if CFG_TUH_CDC
+#include "arduino/cdc/Adafruit_USBH_CDC.h"
+#endif
+
+#if CFG_TUH_MSC
+#include "arduino/msc/Adafruit_USBH_MSC.h"
+#endif
+
+#endif
+
+#endif /* ADAFRUIT_TINYUSB_H_ */
