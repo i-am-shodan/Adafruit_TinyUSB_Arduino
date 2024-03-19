@@ -184,8 +184,10 @@ static err_t netif_init_cb(struct netif *netif)
 Adafruit_USBD_NET::Adafruit_USBD_NET() {
   struct netif *netif = &netif_data;
 
+  //init_wip();
   //tcpip_init()
-  esp_netif_init();
+  //esp_netif_init();
+  tcpipInit();
 
   netif->hwaddr_len = sizeof(tud_network_mac_address);
   memcpy(netif->hwaddr, tud_network_mac_address, sizeof(tud_network_mac_address));
