@@ -258,4 +258,6 @@ bool Adafruit_USBD_NET::loop()
     tud_network_recv_renew();
     ret = true;
   }
+
+  return ret;
 }
