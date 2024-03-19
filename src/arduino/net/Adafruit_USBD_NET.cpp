@@ -187,7 +187,7 @@ Adafruit_USBD_NET::Adafruit_USBD_NET() {
   //init_wip();
   //tcpip_init()
   //esp_netif_init();
-  tcpipInit();
+  //tcpipInit(); private, starting wifi should be enough..
 
   netif->hwaddr_len = sizeof(tud_network_mac_address);
   memcpy(netif->hwaddr, tud_network_mac_address, sizeof(tud_network_mac_address));
