@@ -246,7 +246,7 @@ bool Adafruit_USBD_NET::begin(void) {
 
 bool Adafruit_USBD_NET::loop()
 {
-  ret = false;
+  bool ret = false;
   tud_task();
 
   /* handle any packet received by tud_network_recv_cb() */
