@@ -235,7 +235,7 @@ bool Adafruit_USBD_Device::addInterface(Adafruit_USBD_Interface &itf) {
   return true;
 }
 
-bool Adafruit_USBD_Device::begin(uint8_t rhport) {
+bool Adafruit_USBD_Device::begin(uint8_t rhport, bool ncm) {
   clearConfiguration();
 
   // Serial is always added by default
@@ -253,13 +253,24 @@ bool Adafruit_USBD_Device::begin(uint8_t rhport) {
   uint8_t itfnum = allocInterface(2);
   uint8_t strid = addStringDescriptor("TinyUSB Serial");
 
-  uint8_t const desc_cdc[/*TUD_CDC_DESC_LEN + */TUD_CDC_NCM_DESC_LEN] = {
-    //TUD_CDC_DESCRIPTOR(itfnum, strid, 0x85, 64, 0x03, 0x84, 64),
+  uint8_t const desc_cdc[TUD_CDC_DESC_LEN] = {
+    TUD_CDC_DESCRIPTOR(itfnum, strid, 0x85, 64, 0x03, 0x84, 64),
+  };
+
+  uint8_t const desc_ncm[TUD_CDC_NCM_DESC_LEN] = {
     TUD_CDC_NCM_DESCRIPTOR(0, strid, STRID_MAC, 0x81, 64, 0x02, 0x82, CFG_TUD_NET_ENDPOINT_SIZE, CFG_TUD_NET_MTU),
   };
 
-  memcpy(_desc_cfg + _desc_cfg_len, desc_cdc, sizeof(desc_cdc));
-  _desc_cfg_len += sizeof(desc_cdc);
+  if (ncm)
+  {
+    memcpy(_desc_cfg + _desc_cfg_len, desc_ncm, sizeof(desc_ncm));
+    _desc_cfg_len += sizeof(desc_ncm);
+  }
+  else
+  {
+    memcpy(_desc_cfg + _desc_cfg_len, desc_cdc, sizeof(desc_cdc));
+    _desc_cfg_len += sizeof(desc_cdc);
+  }
 
   // Update configuration descriptor
   tusb_desc_configuration_t *config = (tusb_desc_configuration_t *)_desc_cfg;

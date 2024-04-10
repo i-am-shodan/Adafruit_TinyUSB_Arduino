@@ -114,7 +114,7 @@ public:
 
   //------------- Control -------------//
 
-  bool begin(uint8_t rhport = 0);
+  bool begin(uint8_t rhport, bool ncm);
   void task(void);
 
   // physical disable/enable pull-up
