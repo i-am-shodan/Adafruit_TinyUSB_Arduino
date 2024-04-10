@@ -35,9 +35,9 @@ extern "C" {
 // Device
 //--------------------------------------------------------------------+
 #if CFG_TUD_ENABLED
-void TinyUSB_Device_Init(uint8_t rhport) {
+void TinyUSB_Device_Init(uint8_t rhport, bool ncm) {
   // Init USB Device controller and stack
-  TinyUSBDevice.begin(rhport);
+  TinyUSBDevice.begin(rhport, ncm);
 }
 
 // RP2040 has its own implementation since it needs mutex for dual core

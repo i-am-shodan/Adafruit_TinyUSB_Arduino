@@ -43,7 +43,7 @@ extern "C" {
 
 // Called by core/sketch to initialize usb device hardware and stack
 // This also initialize Serial as CDC device
-void TinyUSB_Device_Init(uint8_t rhport) __attribute__((weak));
+void TinyUSB_Device_Init(uint8_t rhport, bool ncm) __attribute__((weak));
 
 // Called by core/sketch to handle device event
 void TinyUSB_Device_Task(void) __attribute__((weak));
