@@ -36,3 +36,8 @@ public:
   virtual uint16_t getInterfaceDescriptor(uint8_t itfnum_deprecated,
                                           uint8_t *buf, uint16_t bufsize);
 };
+
+extern "C" bool usbnet_hasNewPacket();
+extern "C" uint8_t* usbnet_getPacket(uint32_t *);
+extern "C" void usbnet_releasePacket();
+extern "C" bool usbnet_transmitPacket(uint8_t *, uint32_t);
