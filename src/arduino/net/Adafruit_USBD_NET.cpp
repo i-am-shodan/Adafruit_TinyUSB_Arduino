@@ -24,6 +24,7 @@
 
 #include <cstdint>
 #include "Adafruit_USBD_NET.h"
+#include "class/net/net_device.h"
 
 //--------------------------------------------------------------------+
 // MACRO TYPEDEF CONSTANT ENUM DECLARATION

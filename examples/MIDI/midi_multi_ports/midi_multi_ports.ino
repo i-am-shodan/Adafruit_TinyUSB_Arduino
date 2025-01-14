@@ -19,28 +19,39 @@
 // USB MIDI object with 3 ports
 Adafruit_USBD_MIDI usb_midi(3);
 
-void setup()
-{
+void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
 
-#if defined(ARDUINO_ARCH_MBED) && defined(ARDUINO_ARCH_RP2040)
-  // Manual begin() is required on core without built-in support for TinyUSB such as mbed rp2040
-  TinyUSB_Device_Init(0);
-#endif
+  // Manual begin() is required on core without built-in support e.g. mbed rp2040
+  if (!TinyUSBDevice.isInitialized()) {
+    TinyUSBDevice.begin(0);
+  }
 
   // Set name for each cable, must be done before usb_midi.begin()
   usb_midi.setCableName(1, "Keyboard");
   usb_midi.setCableName(2, "Drum Pads");
   usb_midi.setCableName(3, "Lights");
-
   usb_midi.begin();
+
+  // If already enumerated, additional class driverr begin() e.g msc, hid, midi won't take effect until re-enumeration
+  if (TinyUSBDevice.mounted()) {
+    TinyUSBDevice.detach();
+    delay(10);
+    TinyUSBDevice.attach();
+  }
 }
 
-void loop()
-{
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(1000);
+void loop() {
+  #ifdef TINYUSB_NEED_POLLING_TASK
+  // Manual call tud_task since it isn't called by Core's background
+  TinyUSBDevice.task();
+  #endif
 
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(1000);
+  // toggle LED
+  static uint32_t ms = 0;
+  static uint8_t led_state = 0;
+  if (millis() - ms > 1000) {
+    ms = millis();
+    digitalWrite(LED_BUILTIN, 1-led_state);
+  }
 }

@@ -37,11 +37,12 @@ Adafruit_USBD_MSC usb_msc;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
-#if defined(ARDUINO_ARCH_MBED) && defined(ARDUINO_ARCH_RP2040)
-  // Manual begin() is required on core without built-in support for TinyUSB such as
-  // - mbed rp2040
-  TinyUSB_Device_Init(0);
-#endif
+  // Manual begin() is required on core without built-in support e.g. mbed rp2040
+  if (!TinyUSBDevice.isInitialized()) { 
+    TinyUSBDevice.begin(0);
+  }
+
+  Serial.begin(115200);
 
 #ifdef BTN_EJECT
   pinMode(BTN_EJECT, activeState ? INPUT_PULLDOWN : INPUT_PULLUP);
@@ -62,14 +63,22 @@ void setup() {
   usb_msc.setUnitReady(true);
   usb_msc.begin();
 
-  Serial.begin(115200);
-//  while ( !Serial ) delay(10);   // wait for native usb
+  // If already enumerated, additional class driverr begin() e.g msc, hid, midi won't take effect until re-enumeration
+  if (TinyUSBDevice.mounted()) {
+    TinyUSBDevice.detach();
+    delay(10);
+    TinyUSBDevice.attach();
+  }
 
+//  while ( !Serial ) delay(10);   // wait for native usb
   Serial.println("Adafruit TinyUSB Mass Storage RAM Disk example");
 }
 
 void loop() {
-  // nothing to do
+  #ifdef TINYUSB_NEED_POLLING_TASK
+  // Manual call tud_task since it isn't called by Core's background
+  TinyUSBDevice.task();
+  #endif
 }
 
 // Callback invoked when received READ10 command.

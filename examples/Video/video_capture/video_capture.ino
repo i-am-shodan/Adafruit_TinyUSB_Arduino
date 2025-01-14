@@ -120,6 +120,11 @@ static unsigned already_sent = 0;
 static void fill_color_bar(uint8_t* buffer, unsigned start_position);
 
 void setup() {
+  // Manual begin() is required on core without built-in support e.g. mbed rp2040
+  if (!TinyUSBDevice.isInitialized()) {
+    TinyUSBDevice.begin(0);
+  }
+
   Serial.begin(115200);
 
   usb_video.addTerminal(&desc_camera_terminal);
@@ -129,9 +134,21 @@ void setup() {
   usb_video.addColorMatching(&desc_color);
 
   usb_video.begin();
+
+  // If already enumerated, additional class driverr begin() e.g msc, hid, midi won't take effect until re-enumeration
+  if (TinyUSBDevice.mounted()) {
+    TinyUSBDevice.detach();
+    delay(10);
+    TinyUSBDevice.attach();
+  }
 }
 
 void loop() {
+  #ifdef TINYUSB_NEED_POLLING_TASK
+  // Manual call tud_task since it isn't called by Core's background
+  TinyUSBDevice.task();
+  #endif
+
   if (!tud_video_n_streaming(0, 0)) {
     already_sent = 0;
     frame_num = 0;

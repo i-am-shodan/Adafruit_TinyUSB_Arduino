@@ -30,6 +30,7 @@
 
 #include "Adafruit_USBD_CDC.h"
 #include "Adafruit_USBD_Device.h"
+#include "class/net/net_device.h"
 
 // USB Information can be defined in variant file e.g pins_arduino.h
 #include "Arduino.h"
@@ -152,7 +153,16 @@ uint8_t Adafruit_USBD_Device::addStringDescriptor(const char *s) {
   return index;
 }
 
-void Adafruit_USBD_Device::task(void) { tud_task(); }
+void Adafruit_USBD_Device::task(void) {
+  tud_task();
+
+#ifdef TINYUSB_NEED_POLLING_TASK
+  // can also be used with port with built-in support
+  if (SerialTinyUSB) {
+    SerialTinyUSB.flush();
+  }
+#endif
+}
 
 bool Adafruit_USBD_Device::mounted(void) { return tud_mounted(); }
 
@@ -285,6 +295,11 @@ bool Adafruit_USBD_Device::begin(uint8_t rhport, bool ncm) {
 #endif
 
   return true;
+}
+
+bool Adafruit_USBD_Device::isInitialized(uint8_t rhport) {
+  (void)rhport;
+  return tud_inited();
 }
 
 static int strcpy_utf16(const char *s, uint16_t *buf, int bufsize);
