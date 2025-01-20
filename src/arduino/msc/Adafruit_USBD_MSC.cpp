@@ -183,6 +183,16 @@ void tud_msc_capacity_cb(uint8_t lun, uint32_t *block_count,
   *block_size = _msc_dev->_lun_info[lun].block_size;
 }
 
+// at the moment we only support a state for all devices
+msc_scsi_device_type_t tud_msc_scsi_device_type(uint8_t lun)
+{
+  if (!_msc_dev) {
+    return MSC_SCSI_DEVICE_BLOCK;
+  }
+
+  return _msc_dev->isCDROM() ? MSC_SCSI_DEVICE_CDROM : MSC_SCSI_DEVICE_BLOCK;
+}
+
 // Callback invoked when received an SCSI command not in built-in list below
 // - READ_CAPACITY10, READ_FORMAT_CAPACITY, INQUIRY, MODE_SENSE6, REQUEST_SENSE
 // - READ10 and WRITE10 has their own callbacks
@@ -191,16 +201,39 @@ int32_t tud_msc_scsi_cb(uint8_t lun, const uint8_t scsi_cmd[16], void *buffer,
   const void *response = NULL;
   int32_t resplen = 0;
 
+  const uint8_t MSC_Read_TOC_Data[20] =
+  {
+    0x00,
+    0x12,
+    0x01,
+    0x01,
+    0x00,0x14,0x01,0x00,0x00,0x00,0x02,0x00,
+    0x00,0x14,0xaa,0x00,0x00,0x00,0x00,0x00
+  };
+
+  const uint8_t MSC_Read_Disc_Info_Data[2] =
+  {
+    0x00,
+    0x00
+  };
+
   switch (scsi_cmd[0]) {
+    case SCSI_CMD_READ_TOC:
+      response = MSC_Read_TOC_Data;
+      resplen = sizeof(MSC_Read_TOC_Data);
+      break;
+    case SCSI_CMD_READ_DISC_INFO:
+      response = MSC_Read_Disc_Info_Data;
+      resplen = sizeof(MSC_Read_Disc_Info_Data);
+      break;
+    default:
+      // Set Sense = Invalid Command Operation
+      tud_msc_set_sense(lun, SCSI_SENSE_ILLEGAL_REQUEST, 0x20, 0x00);
 
-  default:
-    // Set Sense = Invalid Command Operation
-    tud_msc_set_sense(lun, SCSI_SENSE_ILLEGAL_REQUEST, 0x20, 0x00);
-
-    // negative means error -> tinyusb could stall and/or response with failed
-    // status
-    resplen = -1;
-    break;
+      // negative means error -> tinyusb could stall and/or response with failed
+      // status
+      resplen = -1;
+      break;
   }
 
   // return len must not larger than bufsize

@@ -78,6 +78,13 @@ typedef enum
   MSC_CSW_STATUS_PHASE_ERROR  ///< MSC_CSW_STATUS_PHASE_ERROR
 }msc_csw_status_t;
 
+/// MassStorage SCSI device type
+typedef enum
+{
+  MSC_SCSI_DEVICE_BLOCK = 0 , ///< USB removable disk
+  MSC_SCSI_DEVICE_CDROM     , ///< USB CDROM
+}msc_scsi_device_type_t;
+
 /// Command Block Wrapper
 typedef struct TU_ATTR_PACKED
 {
@@ -121,6 +128,8 @@ typedef enum
   SCSI_CMD_READ_FORMAT_CAPACITY         = 0x23, ///< The command allows the Host to request a list of the possible format capacities for an installed writable media. This command also has the capability to report the writable capacity for a media when it is installed
   SCSI_CMD_READ_10                      = 0x28, ///< The READ (10) command requests that the device server read the specified logical block(s) and transfer them to the data-in buffer.
   SCSI_CMD_WRITE_10                     = 0x2A, ///< The WRITE (10) command requests that the device server transfer the specified logical block(s) from the data-out buffer and write them.
+  SCSI_CMD_READ_TOC                     = 0x43, ///< The READ_TOCK command requests details of a CDROM's table of contents
+  SCSI_CMD_READ_DISC_INFO               = 0x51  ///< The READ_DISC_INFO returns information on the underlying disc
 }scsi_cmd_type_t;
 
 /// SCSI Sense Key

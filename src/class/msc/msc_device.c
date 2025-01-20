@@ -779,22 +779,28 @@ static int32_t proc_builtin_scsi(uint8_t lun, uint8_t const scsi_cmd[16], uint8_
     case SCSI_CMD_INQUIRY:
     {
       scsi_inquiry_resp_t inquiry_rsp =
+          {
+              .is_removable = 1,
+              .version = 2,
+              .response_data_format = 2,
+              .additional_length = sizeof(scsi_inquiry_resp_t) - 5,
+          };
+
+      if (tud_msc_scsi_device_type(lun) == MSC_SCSI_DEVICE_CDROM)
       {
-          .is_removable         = 1,
-          .version              = 2,
-          .response_data_format = 2,
-          .additional_length    = sizeof(scsi_inquiry_resp_t) - 5,
-      };
+        inquiry_rsp.peripheral_device_type = 0x05;
+        inquiry_rsp.peripheral_qualifier = 0x0;
+      }
 
       // vendor_id, product_id, product_rev is space padded string
-      memset(inquiry_rsp.vendor_id  , ' ', sizeof(inquiry_rsp.vendor_id));
-      memset(inquiry_rsp.product_id , ' ', sizeof(inquiry_rsp.product_id));
+      memset(inquiry_rsp.vendor_id, ' ', sizeof(inquiry_rsp.vendor_id));
+      memset(inquiry_rsp.product_id, ' ', sizeof(inquiry_rsp.product_id));
       memset(inquiry_rsp.product_rev, ' ', sizeof(inquiry_rsp.product_rev));
 
       tud_msc_inquiry_cb(lun, inquiry_rsp.vendor_id, inquiry_rsp.product_id, inquiry_rsp.product_rev);
 
       resplen = sizeof(inquiry_rsp);
-      TU_VERIFY(0 == tu_memcpy_s(buffer, bufsize, &inquiry_rsp, (size_t) resplen));
+      TU_VERIFY(0 == tu_memcpy_s(buffer, bufsize, &inquiry_rsp, (size_t)resplen));
     }
     break;
 
