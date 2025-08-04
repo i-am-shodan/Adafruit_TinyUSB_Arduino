@@ -23,6 +23,7 @@
  */
 
 #include <cstdint>
+#include <cstdlib>
 #include "Adafruit_USBD_NET.h"
 
 //--------------------------------------------------------------------+
