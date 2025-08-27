@@ -240,8 +240,6 @@ bool Adafruit_USBD_Device::begin(uint8_t rhport) {
   _desc_device.bDeviceSubClass = MISC_SUBCLASS_COMMON;
   _desc_device.bDeviceProtocol = MISC_PROTOCOL_IAD;
 
-#if defined(ARDUINO_ARCH_ESP32)
-#if ARDUINO_USB_CDC_ON_BOOT && !ARDUINO_USB_MODE
   // follow USBCDC cdc descriptor
   uint8_t itfnum = allocInterface(2);
   uint8_t strid = addStringDescriptor("TinyUSB Serial");
@@ -257,10 +255,8 @@ bool Adafruit_USBD_Device::begin(uint8_t rhport) {
   tusb_desc_configuration_t *config = (tusb_desc_configuration_t *)_desc_cfg;
   config->wTotalLength = _desc_cfg_len;
   config->bNumInterfaces = _itf_count;
-#endif
-#else
-  SerialTinyUSB.begin(115200);
 
+#ifndef ARDUINO_ARCH_ESP32
   // Init device hardware and call tusb_init()
   TinyUSB_Port_InitDevice(rhport);
 #endif
