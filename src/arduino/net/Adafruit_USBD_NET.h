@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2019 Ha Thach for Adafruit Industries
+ * Copyright (c) 2019 i-am-shodan for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,63 +22,22 @@
  * THE SOFTWARE.
  */
 
-#ifndef ADAFRUIT_TINYUSB_H_
-#define ADAFRUIT_TINYUSB_H_
-
-#include "tusb_option.h"
-
-// Device
-#if CFG_TUD_ENABLED
+#pragma once
 
 #include "arduino/Adafruit_USBD_Device.h"
 
-#if CFG_TUD_CDC
-#include "arduino/Adafruit_USBD_CDC.h"
-#endif
+class Adafruit_USBD_NET : public Adafruit_USBD_Interface {
+public:
+  Adafruit_USBD_NET();
 
-#if CFG_TUD_HID
-#include "arduino/hid/Adafruit_USBD_HID.h"
-#endif
+  bool begin(void);
 
-#if CFG_TUD_MIDI
-#include "arduino/midi/Adafruit_USBD_MIDI.h"
-#endif
+  // from Adafruit_USBD_Interface
+  virtual uint16_t getInterfaceDescriptor(uint8_t itfnum_deprecated,
+                                          uint8_t *buf, uint16_t bufsize);
+};
 
-#if CFG_TUD_MSC
-#include "arduino/msc/Adafruit_USBD_MSC.h"
-#endif
-
-#if CFG_TUD_VENDOR
-#include "arduino/webusb/Adafruit_USBD_WebUSB.h"
-#endif
-
-#if CFG_TUD_VIDEO
-#include "arduino/video/Adafruit_USBD_Video.h"
-#endif
-
-#if defined(CFG_TUD_ECM_RNDIS) || defined(CFG_TUD_NCM)
-#include "arduino/net/Adafruit_USBD_NET.h"
-#endif
-
-// Initialize device hardware, stack, also Serial as CDC
-// Wrapper for TinyUSBDevice.begin(rhport)
-void TinyUSB_Device_Init(uint8_t rhport);
-
-#endif
-
-// Host
-#if CFG_TUH_ENABLED
-
-#include "arduino/Adafruit_USBH_Host.h"
-
-#if CFG_TUH_CDC
-#include "arduino/cdc/Adafruit_USBH_CDC.h"
-#endif
-
-#if CFG_TUH_MSC
-#include "arduino/msc/Adafruit_USBH_MSC.h"
-#endif
-
-#endif
-
-#endif /* ADAFRUIT_TINYUSB_H_ */
+extern "C" bool usbnet_hasNewPacket();
+extern "C" uint8_t* usbnet_getPacket(uint32_t *);
+extern "C" void usbnet_releasePacket();
+extern "C" bool usbnet_transmitPacket(uint8_t *, uint32_t);

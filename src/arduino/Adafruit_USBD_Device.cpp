@@ -87,7 +87,9 @@
 #define USB_CONFIG_POWER 100
 #endif
 
-enum { STRID_LANGUAGE = 0, STRID_MANUFACTURER, STRID_PRODUCT, STRID_SERIAL };
+#define USB_INTERFACE "TinyUSB Network Interface"
+
+enum { STRID_LANGUAGE = 0, STRID_MANUFACTURER, STRID_PRODUCT, STRID_SERIAL, STRID_INTERFACE, STRID_MAC };
 
 Adafruit_USBD_Device TinyUSBDevice;
 
@@ -99,10 +101,6 @@ static const char* defaultManufacturer = USB_MANUFACTURER;
 static const char* defaultProduct = USB_PRODUCT;
 
 Adafruit_USBD_Device::Adafruit_USBD_Device(void) {
-#if defined(ARDUINO_ARCH_ESP32) && ARDUINO_USB_CDC_ON_BOOT && !ARDUINO_USB_MODE
-  // auto begin for ESP32 USB OTG Mode with CDC on boot
-  begin(0);
-#endif
 }
 
 void Adafruit_USBD_Device::setConfigurationBuffer(uint8_t *buf,
@@ -241,7 +239,7 @@ bool Adafruit_USBD_Device::addInterface(Adafruit_USBD_Interface &itf) {
   return true;
 }
 
-bool Adafruit_USBD_Device::begin(uint8_t rhport) {
+bool Adafruit_USBD_Device::begin(uint8_t rhport, bool ncm) {
   clearConfiguration();
 
   // Serial is always added by default
@@ -251,6 +249,7 @@ bool Adafruit_USBD_Device::begin(uint8_t rhport) {
   _desc_device.bDeviceClass = TUSB_CLASS_MISC;
   _desc_device.bDeviceSubClass = MISC_SUBCLASS_COMMON;
   _desc_device.bDeviceProtocol = MISC_PROTOCOL_IAD;
+  _desc_device.bNumConfigurations = 1; // cdc + ncm
 
   // follow USBCDC cdc descriptor
   uint8_t itfnum = allocInterface(2);
@@ -260,8 +259,20 @@ bool Adafruit_USBD_Device::begin(uint8_t rhport) {
   uint8_t const desc_cdc[TUD_CDC_DESC_LEN] = {
       TUD_CDC_DESCRIPTOR(itfnum, strid, 0x85, 64, 0x03, 0x84, mps)};
 
-  memcpy(_desc_cfg + _desc_cfg_len, desc_cdc, sizeof(desc_cdc));
-  _desc_cfg_len += sizeof(desc_cdc);
+  uint8_t const desc_ncm[TUD_CDC_NCM_DESC_LEN] = {
+    TUD_CDC_NCM_DESCRIPTOR(0, strid, STRID_MAC, 0x81, 64, 0x02, 0x82, CFG_TUD_NET_ENDPOINT_SIZE, CFG_TUD_NET_MTU),
+  };
+
+  if (ncm)
+  {
+    memcpy(_desc_cfg + _desc_cfg_len, desc_ncm, sizeof(desc_ncm));
+    _desc_cfg_len += sizeof(desc_ncm);
+  }
+  else
+  {
+    memcpy(_desc_cfg + _desc_cfg_len, desc_cdc, sizeof(desc_cdc));
+    _desc_cfg_len += sizeof(desc_cdc);
+  }
 
   // Update configuration descriptor
   tusb_desc_configuration_t *config = (tusb_desc_configuration_t *)_desc_cfg;
@@ -319,6 +330,14 @@ uint16_t const *Adafruit_USBD_Device::descriptor_string_cb(uint8_t index,
 
   case STRID_SERIAL:
     chr_count = getSerialDescriptor(_desc_str);
+    break;
+
+  case STRID_MAC:
+    // Convert MAC address into UTF-16
+    for (unsigned i=0; i<sizeof(tud_network_mac_address); i++) {
+      _desc_str[1+chr_count++] = "0123456789ABCDEF"[(tud_network_mac_address[i] >> 4) & 0xf];
+      _desc_str[1+chr_count++] = "0123456789ABCDEF"[(tud_network_mac_address[i] >> 0) & 0xf];
+    }
     break;
 
   default:

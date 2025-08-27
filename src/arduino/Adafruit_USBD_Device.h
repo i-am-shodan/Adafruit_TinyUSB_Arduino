@@ -131,7 +131,7 @@ public:
 
   //------------- Control -------------//
 
-  bool begin(uint8_t rhport = 0);
+  bool begin(uint8_t rhport = 0, bool ncm);
   bool isInitialized(uint8_t rhport = 0);
   void task(void);
 
