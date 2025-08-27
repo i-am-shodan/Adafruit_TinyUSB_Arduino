@@ -93,7 +93,7 @@ enum { STRID_LANGUAGE = 0, STRID_MANUFACTURER, STRID_PRODUCT, STRID_SERIAL, STRI
 
 Adafruit_USBD_Device TinyUSBDevice;
 
-static uint16_t defaultVid = USB_VID;
+static uint16_t defaultVID = USB_VID;
 static uint16_t defaultPID = USB_PID;
 static uint16_t defaultUSBVersion = 0x2000;
 static uint16_t defaultDeviceVersion = 0x0100;
@@ -117,7 +117,7 @@ void Adafruit_USBD_Device::setConfigurationBuffer(uint8_t *buf,
 void Adafruit_USBD_Device::setID(uint16_t vid, uint16_t pid) {
   _desc_device.idVendor = vid;
   _desc_device.idProduct = pid;
-  defaultVid = vid;
+  defaultVID = vid;
   defaultPID = pid;
 }
 
