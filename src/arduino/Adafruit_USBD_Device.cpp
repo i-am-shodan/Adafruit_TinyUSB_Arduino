@@ -91,6 +91,13 @@ enum { STRID_LANGUAGE = 0, STRID_MANUFACTURER, STRID_PRODUCT, STRID_SERIAL };
 
 Adafruit_USBD_Device TinyUSBDevice;
 
+static uint16_t defaultVid = USB_VID;
+static uint16_t defaultPID = USB_PID;
+static uint16_t defaultUSBVersion = 0x2000;
+static uint16_t defaultDeviceVersion = 0x0100;
+static const char* defaultManufacturer = USB_MANUFACTURER;
+static const char* defaultProduct = USB_PRODUCT;
+
 Adafruit_USBD_Device::Adafruit_USBD_Device(void) {
 #if defined(ARDUINO_ARCH_ESP32) && ARDUINO_USB_CDC_ON_BOOT && !ARDUINO_USB_MODE
   // auto begin for ESP32 USB OTG Mode with CDC on boot
@@ -112,14 +119,18 @@ void Adafruit_USBD_Device::setConfigurationBuffer(uint8_t *buf,
 void Adafruit_USBD_Device::setID(uint16_t vid, uint16_t pid) {
   _desc_device.idVendor = vid;
   _desc_device.idProduct = pid;
+  defaultVid = vid;
+  defaultPID = pid;
 }
 
 void Adafruit_USBD_Device::setVersion(uint16_t bcd) {
   _desc_device.bcdUSB = bcd;
+  defaultUSBVersion = bcd;
 }
 
 void Adafruit_USBD_Device::setDeviceVersion(uint16_t bcd) {
   _desc_device.bcdDevice = bcd;
+  defaultDeviceVersion = bcd;
 }
 
 void Adafruit_USBD_Device::setLanguageDescriptor(uint16_t language_id) {
@@ -164,15 +175,15 @@ void Adafruit_USBD_Device::task(void) {
 void Adafruit_USBD_Device::clearConfiguration(void) {
   tusb_desc_device_t const desc_dev = {.bLength = sizeof(tusb_desc_device_t),
                                        .bDescriptorType = TUSB_DESC_DEVICE,
-                                       .bcdUSB = 0x0200,
+                                       .bcdUSB = defaultUSBVersion,
                                        .bDeviceClass = 0,
                                        .bDeviceSubClass = 0,
                                        .bDeviceProtocol = 0,
                                        .bMaxPacketSize0 =
                                            CFG_TUD_ENDPOINT0_SIZE,
-                                       .idVendor = USB_VID,
-                                       .idProduct = USB_PID,
-                                       .bcdDevice = 0x0100,
+                                       .idVendor = defaultVID,
+                                       .idProduct = defaultPID,
+                                       .bcdDevice = defaultDeviceVersion,
                                        .iManufacturer = STRID_MANUFACTURER,
                                        .iProduct = STRID_PRODUCT,
                                        .iSerialNumber = STRID_SERIAL,
@@ -199,9 +210,10 @@ void Adafruit_USBD_Device::clearConfiguration(void) {
 
   memset(_desc_str_arr, 0, sizeof(_desc_str_arr));
   _desc_str_arr[STRID_LANGUAGE] = (const char *)((uint32_t)USB_LANGUAGE);
-  _desc_str_arr[STRID_MANUFACTURER] = USB_MANUFACTURER;
-  _desc_str_arr[STRID_PRODUCT] = USB_PRODUCT;
+  _desc_str_arr[STRID_MANUFACTURER] = defaultManufacturer;
+  _desc_str_arr[STRID_PRODUCT] = defaultProduct;
   _desc_str_arr[STRID_SERIAL] = nullptr;
+  _desc_str_arr[STRID_INTERFACE] = USB_INTERFACE;
   // STRID_SERIAL is platform dependent
 
   _desc_str_count = 4;
