@@ -67,6 +67,10 @@ public:
     setCapacity(0, block_count, block_size);
   }
 
+  void setCDROM(bool cdrom) { _isCDROM = cdrom; }
+
+  bool isCDROM() { return _isCDROM; }
+
   void setUnitReady(bool ready) { setUnitReady(0, ready); }
 
   void setReadWriteCallback(read_callback_t rd_cb, write_callback_t wr_cb,
@@ -107,6 +111,7 @@ private:
   } _lun_info[MAX_LUN];
 
   uint8_t _maxlun;
+  bool _isCDROM = false;
 
   // Make all tinyusb callback friend to access private data
   friend void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8],
