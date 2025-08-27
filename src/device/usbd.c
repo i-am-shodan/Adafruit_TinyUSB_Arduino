@@ -35,6 +35,10 @@
 #include "device/usbd.h"
 #include "device/usbd_pvt.h"
 
+static uint8_t totalCallsDeviceDescriptor = 0;
+bool earlyResetAfterFirstDeviceDescriptorCall = false;
+bool setAddressCalledBeforeFirstDeviceDescriptorCall = false;
+
 //--------------------------------------------------------------------+
 // USBD Configuration
 //--------------------------------------------------------------------+
@@ -605,6 +609,12 @@ void tud_task_ext(uint32_t timeout_ms, bool in_isr) {
         TU_LOG_USBD(": %s Speed\r\n", tu_str_speed[event.bus_reset.speed]);
         usbd_reset(event.rhport);
         _usbd_dev.speed = event.bus_reset.speed;
+
+        if (totalCallsDeviceDescriptor == 1)
+        {
+          // early reset, possible Windows OS
+          earlyResetAfterFirstDeviceDescriptorCall = true;
+        }
         break;
 
       case DCD_EVENT_UNPLUGGED:
@@ -772,6 +782,11 @@ static bool process_control_request(uint8_t rhport, tusb_control_request_t const
           dcd_set_address(rhport, (uint8_t) p_request->wValue);
           // skip tud_control_status()
           _usbd_dev.addressed = 1;
+
+          if (totalCallsDeviceDescriptor == 0)
+          {
+            setAddressCalledBeforeFirstDeviceDescriptorCall = true;
+          }
         break;
 
         case TUSB_REQ_GET_CONFIGURATION: {
@@ -1091,6 +1106,8 @@ static bool process_get_descriptor(uint8_t rhport, tusb_control_request_t const 
   {
     case TUSB_DESC_DEVICE: {
       TU_LOG_USBD(" Device\r\n");
+
+      totalCallsDeviceDescriptor++;
 
       void* desc_device = (void*) (uintptr_t) tud_descriptor_device_cb();
       TU_ASSERT(desc_device);
