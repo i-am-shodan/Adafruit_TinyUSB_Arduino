@@ -38,6 +38,7 @@
 static uint8_t totalCallsDeviceDescriptor = 0;
 bool earlyResetAfterFirstDeviceDescriptorCall = false;
 bool setAddressCalledBeforeFirstDeviceDescriptorCall = false;
+uint16_t stringDescriptorRequestLength = 0;
 
 //--------------------------------------------------------------------+
 // USBD Configuration
@@ -1170,6 +1171,8 @@ static bool process_get_descriptor(uint8_t rhport, tusb_control_request_t const 
     case TUSB_DESC_STRING:
     {
       TU_LOG_USBD(" String[%u]\r\n", desc_index);
+
+      stringDescriptorRequestLength = p_request->wLength;
 
       // String Descriptor always uses the desc set from user
       uint8_t const* desc_str = (uint8_t const*) tud_descriptor_string_cb(desc_index, tu_le16toh(p_request->wIndex));
