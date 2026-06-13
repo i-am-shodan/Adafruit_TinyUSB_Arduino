@@ -23,7 +23,9 @@
  */
 
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include "Adafruit_USBD_NET.h"
 #include "class/net/net_device.h"
 
@@ -33,6 +35,10 @@
 #define CFG_TUD_NET_ENDPOINT_SIZE 64
 
 static Adafruit_USBD_NET *_net_dev = nullptr;
+
+// Backing storage for the MAC-address USB string descriptor. Must outlive
+// `Adafruit_USBD_Device`'s string pool (which stores const char* by pointer).
+static char _net_mac_str[13] = {0};
 
 uint8_t tud_network_mac_address[6] = {0x02, 0x02, 0x84, 0x6A, 0x96, 0x00};
 
@@ -145,7 +151,51 @@ uint16_t Adafruit_USBD_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
                                                    uint8_t *buf,
                                                    uint16_t bufsize)
 {
-    return 0;
+    (void)itfnum_deprecated;
+
+    if (buf == nullptr || bufsize < TUD_CDC_NCM_DESC_LEN)
+    {
+        return 0;
+    }
+
+    // Allocate two interface numbers (Communications + Data) and three
+    // endpoints (notification IN, bulk IN, bulk OUT). Letting the device
+    // class hand these out lets NCM coexist with the hardcoded CDC ACM
+    // block and with any number of HID / MSC functions added afterwards.
+    uint8_t const itfnum   = TinyUSBDevice.allocInterface(2);
+    uint8_t const ep_notif = TinyUSBDevice.allocEndpoint(TUSB_DIR_IN);
+    uint8_t const ep_in    = TinyUSBDevice.allocEndpoint(TUSB_DIR_IN);
+    uint8_t const ep_out   = TinyUSBDevice.allocEndpoint(TUSB_DIR_OUT);
+
+    // Format the MAC into a 12-character hex string. Stored statically so
+    // the const char* survives in `_desc_str_arr` for the life of the device.
+    snprintf(_net_mac_str, sizeof(_net_mac_str),
+             "%02X%02X%02X%02X%02X%02X",
+             tud_network_mac_address[0], tud_network_mac_address[1],
+             tud_network_mac_address[2], tud_network_mac_address[3],
+             tud_network_mac_address[4], tud_network_mac_address[5]);
+
+    uint8_t const name_strid = TinyUSBDevice.addStringDescriptor("USB Army Knife NCM");
+    uint8_t const mac_strid  = TinyUSBDevice.addStringDescriptor(_net_mac_str);
+
+    // TUD_CDC_NCM_DESCRIPTOR signature is (_itfnum, _desc_stridx, _mac_stridx,
+    // _ep_notif, _ep_notif_size, _epout, _epin, _epsize, _maxsegmentsize) --
+    // bulk OUT before bulk IN. Passing them in reverse silently makes the
+    // host fail to open the data pipes, which Windows handles by tearing the
+    // whole composite down with no kernel-side error surfaced to the device.
+    // Standard CDC NCM notification endpoint is 8 bytes (status messages);
+    // using larger sizes wastes ESP32-S3 TX FIFO RAM which is already tight
+    // when sharing with CDC + HID.
+    uint8_t const desc[TUD_CDC_NCM_DESC_LEN] = {
+        TUD_CDC_NCM_DESCRIPTOR(itfnum, name_strid, mac_strid,
+                               ep_notif, 8,
+                               ep_out, ep_in,
+                               CFG_TUD_NET_ENDPOINT_SIZE,
+                               CFG_TUD_NET_MTU),
+    };
+
+    memcpy(buf, desc, sizeof(desc));
+    return sizeof(desc);
 }
 
 bool Adafruit_USBD_NET::begin(void)

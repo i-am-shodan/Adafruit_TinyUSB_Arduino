@@ -95,7 +95,7 @@ Adafruit_USBD_Device TinyUSBDevice;
 
 static uint16_t defaultVID = USB_VID;
 static uint16_t defaultPID = USB_PID;
-static uint16_t defaultUSBVersion = 0x2000;
+static uint16_t defaultUSBVersion = 0x0200;
 static uint16_t defaultDeviceVersion = 0x0100;
 static const char* defaultManufacturer = USB_MANUFACTURER;
 static const char* defaultProduct = USB_PRODUCT;
@@ -242,36 +242,60 @@ bool Adafruit_USBD_Device::addInterface(Adafruit_USBD_Interface &itf) {
 bool Adafruit_USBD_Device::begin(uint8_t rhport, bool ncm) {
   clearConfiguration();
 
-  // Serial is always added by default
-  // Use Interface Association Descriptor (IAD) for CDC
+  // Use Interface Association Descriptor (IAD) for CDC and any
+  // additional CDC-class function (e.g. NCM) that self-registers on top.
   // As required by USB Specs IAD's subclass must be common class (2) and
-  // protocol must be IAD (1)
+  // protocol must be IAD (1).
   _desc_device.bDeviceClass = TUSB_CLASS_MISC;
   _desc_device.bDeviceSubClass = MISC_SUBCLASS_COMMON;
   _desc_device.bDeviceProtocol = MISC_PROTOCOL_IAD;
-  _desc_device.bNumConfigurations = 1; // cdc + ncm
+  _desc_device.bNumConfigurations = 1;
 
-  // follow USBCDC cdc descriptor
-  uint8_t itfnum = allocInterface(2);
-  uint8_t strid = addStringDescriptor("TinyUSB Serial");
-  uint16_t const mps =
-      (TUD_OPT_HIGH_SPEED ? 512 : 64); // TODO actual link speed
-  uint8_t const desc_cdc[TUD_CDC_DESC_LEN] = {
-      TUD_CDC_DESCRIPTOR(itfnum, strid, 0x85, 64, 0x03, 0x84, mps)};
-
-  uint8_t const desc_ncm[TUD_CDC_NCM_DESC_LEN] = {
-    TUD_CDC_NCM_DESCRIPTOR(0, strid, STRID_MAC, 0x81, 64, 0x02, 0x82, CFG_TUD_NET_ENDPOINT_SIZE, CFG_TUD_NET_MTU),
-  };
-
-  if (ncm)
+  // Add the always-on CDC ACM serial interface, unless the caller asks for
+  // NCM-only (legacy single-function NCM build). In composite mode the
+  // CDC block is always present and NCM is added afterwards by
+  // Adafruit_USBD_NET::begin() via addInterface().
+  if (!ncm)
   {
-    memcpy(_desc_cfg + _desc_cfg_len, desc_ncm, sizeof(desc_ncm));
-    _desc_cfg_len += sizeof(desc_ncm);
-  }
-  else
-  {
-    memcpy(_desc_cfg + _desc_cfg_len, desc_cdc, sizeof(desc_cdc));
-    _desc_cfg_len += sizeof(desc_cdc);
+    uint8_t itfnum = allocInterface(2);
+    uint8_t strid = addStringDescriptor("TinyUSB Serial");
+    uint16_t const mps =
+        (TUD_OPT_HIGH_SPEED ? 512 : 64); // TODO actual link speed
+
+    // CDC ACM WITHOUT the interrupt notification endpoint. The ESP32-S3 FS
+    // controller only has 5 IN endpoints total (including EP0), so a full
+    // CDC + HID + NCM composite (which needs 6 IN endpoints with a CDC
+    // notification EP) overflows the controller and SET_CONFIGURATION
+    // silently aborts -> Windows shows Code 10 on the composite parent.
+    // Dropping the notification EP means we cannot send the Serial_State
+    // notification (DCD/DSR/Break) but SET_LINE_CODING / SET_CONTROL_LINE_STATE
+    // still work over the control endpoint, which is all usbser.sys actually
+    // requires for an ACM serial port. bmCapabilities advertises only line
+    // coding requests (bit 1 cleared since we no longer support the
+    // associated Serial_State notification per CDC-PSTN spec section 6.3.5).
+    uint8_t const desc_cdc_no_notif[8 + 9 + 5 + 5 + 4 + 5 + 9 + 7 + 7] = {
+        // Interface Association
+        8, TUSB_DESC_INTERFACE_ASSOCIATION, itfnum, 2, TUSB_CLASS_CDC, CDC_COMM_SUBCLASS_ABSTRACT_CONTROL_MODEL, CDC_COMM_PROTOCOL_NONE, 0,
+        // CDC Control Interface (bNumEndpoints = 0)
+        9, TUSB_DESC_INTERFACE, itfnum, 0, 0, TUSB_CLASS_CDC, CDC_COMM_SUBCLASS_ABSTRACT_CONTROL_MODEL, CDC_COMM_PROTOCOL_NONE, strid,
+        // CDC Header
+        5, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_HEADER, U16_TO_U8S_LE(0x0120),
+        // CDC Call Management
+        5, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_CALL_MANAGEMENT, 0, (uint8_t)((itfnum) + 1),
+        // CDC ACM: support_send_break only (no Serial_State notification)
+        4, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_ABSTRACT_CONTROL_MANAGEMENT, 4,
+        // CDC Union
+        5, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_UNION, itfnum, (uint8_t)((itfnum) + 1),
+        // CDC Data Interface
+        9, TUSB_DESC_INTERFACE, (uint8_t)((itfnum) + 1), 0, 2, TUSB_CLASS_CDC_DATA, 0, 0, 0,
+        // Endpoint Out
+        7, TUSB_DESC_ENDPOINT, 0x03, TUSB_XFER_BULK, U16_TO_U8S_LE(mps), 0,
+        // Endpoint In
+        7, TUSB_DESC_ENDPOINT, 0x84, TUSB_XFER_BULK, U16_TO_U8S_LE(mps), 0,
+    };
+
+    memcpy(_desc_cfg + _desc_cfg_len, desc_cdc_no_notif, sizeof(desc_cdc_no_notif));
+    _desc_cfg_len += sizeof(desc_cdc_no_notif);
   }
 
   // Update configuration descriptor
@@ -330,14 +354,6 @@ uint16_t const *Adafruit_USBD_Device::descriptor_string_cb(uint8_t index,
 
   case STRID_SERIAL:
     chr_count = getSerialDescriptor(_desc_str);
-    break;
-
-  case STRID_MAC:
-    // Convert MAC address into UTF-16
-    for (unsigned i=0; i<sizeof(tud_network_mac_address); i++) {
-      _desc_str[1+chr_count++] = "0123456789ABCDEF"[(tud_network_mac_address[i] >> 4) & 0xf];
-      _desc_str[1+chr_count++] = "0123456789ABCDEF"[(tud_network_mac_address[i] >> 0) & 0xf];
-    }
     break;
 
   default:
