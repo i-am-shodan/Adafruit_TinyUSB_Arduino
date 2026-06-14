@@ -40,6 +40,21 @@ static Adafruit_USBD_NET *_net_dev = nullptr;
 // `Adafruit_USBD_Device`'s string pool (which stores const char* by pointer).
 static char _net_mac_str[13] = {0};
 
+// Backing storage for the NCM function name USB string descriptor. Same
+// lifetime contract as _net_mac_str. Default matches what we ship in our
+// USBNCM pref so the descriptor is sane even if no override was applied.
+static char _net_name_str[64] = "Generic NCM";
+
+extern "C" void usbnet_setDescriptorName(const char *name)
+{
+    if (name == nullptr || name[0] == '\0')
+    {
+        return;
+    }
+    strncpy(_net_name_str, name, sizeof(_net_name_str) - 1);
+    _net_name_str[sizeof(_net_name_str) - 1] = '\0';
+}
+
 uint8_t tud_network_mac_address[6] = {0x02, 0x02, 0x84, 0x6A, 0x96, 0x00};
 
 uint8_t *received_frame = nullptr;
@@ -175,7 +190,7 @@ uint16_t Adafruit_USBD_NET::getInterfaceDescriptor(uint8_t itfnum_deprecated,
              tud_network_mac_address[2], tud_network_mac_address[3],
              tud_network_mac_address[4], tud_network_mac_address[5]);
 
-    uint8_t const name_strid = TinyUSBDevice.addStringDescriptor("USB Army Knife NCM");
+    uint8_t const name_strid = TinyUSBDevice.addStringDescriptor(_net_name_str);
     uint8_t const mac_strid  = TinyUSBDevice.addStringDescriptor(_net_mac_str);
 
     // TUD_CDC_NCM_DESCRIPTOR signature is (_itfnum, _desc_stridx, _mac_stridx,
