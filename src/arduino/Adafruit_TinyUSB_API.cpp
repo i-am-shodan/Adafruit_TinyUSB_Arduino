@@ -37,9 +37,9 @@ uint32_t tusb_time_millis_api(void) { return millis(); }
 // Device
 //--------------------------------------------------------------------+
 #if CFG_TUD_ENABLED
-void TinyUSB_Device_Init(uint8_t rhport, bool ncm) {
+void TinyUSB_Device_Init(uint8_t rhport) {
   // Init USB Device controller and stack
-  TinyUSBDevice.begin(rhport, ncm);
+  TinyUSBDevice.begin(rhport);
 }
 
 // RP2040 has its own implementation since it needs mutex for dual core

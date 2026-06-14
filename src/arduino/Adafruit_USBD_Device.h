@@ -131,9 +131,16 @@ public:
 
   //------------- Control -------------//
 
-  bool begin(uint8_t rhport = 0, bool ncm = false);
+  bool begin(uint8_t rhport = 0);
   bool isInitialized(uint8_t rhport = 0);
   void task(void);
+
+  // Toggle inclusion of the CDC ACM interrupt-IN notification endpoint in
+  // the composite built by begin(). Default true (spec-compliant). Set
+  // false from the NCM bring-up path before re-enumeration to free one
+  // IN endpoint for NCM's notification EP on EP-starved controllers
+  // (e.g. ESP32-S3 FS, which only has 5 IN endpoints).
+  void setCDCNotifEndpoint(bool include);
 
   // physical disable/enable pull-up
   bool detach(void) { return tud_disconnect(); }

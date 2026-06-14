@@ -100,6 +100,12 @@ static uint16_t defaultDeviceVersion = 0x0100;
 static const char* defaultManufacturer = USB_MANUFACTURER;
 static const char* defaultProduct = USB_PRODUCT;
 
+// Whether the CDC ACM block built by begin() carries the interrupt-IN
+// notification endpoint. Default true (spec-compliant); flipped off by
+// USBNCM::enable() before the re-enumeration that adds NCM, so only the
+// CDC+HID+NCM composite advertises the out-of-spec 2-endpoint CDC.
+static bool s_includeCdcNotifEp = true;
+
 Adafruit_USBD_Device::Adafruit_USBD_Device(void) {
 }
 
@@ -129,6 +135,10 @@ void Adafruit_USBD_Device::setVersion(uint16_t bcd) {
 void Adafruit_USBD_Device::setDeviceVersion(uint16_t bcd) {
   _desc_device.bcdDevice = bcd;
   defaultDeviceVersion = bcd;
+}
+
+void Adafruit_USBD_Device::setCDCNotifEndpoint(bool include) {
+  s_includeCdcNotifEp = include;
 }
 
 void Adafruit_USBD_Device::setLanguageDescriptor(uint16_t language_id) {
@@ -239,7 +249,7 @@ bool Adafruit_USBD_Device::addInterface(Adafruit_USBD_Interface &itf) {
   return true;
 }
 
-bool Adafruit_USBD_Device::begin(uint8_t rhport, bool ncm) {
+bool Adafruit_USBD_Device::begin(uint8_t rhport) {
   clearConfiguration();
 
   // Use Interface Association Descriptor (IAD) for CDC and any
@@ -251,51 +261,61 @@ bool Adafruit_USBD_Device::begin(uint8_t rhport, bool ncm) {
   _desc_device.bDeviceProtocol = MISC_PROTOCOL_IAD;
   _desc_device.bNumConfigurations = 1;
 
-  // Add the always-on CDC ACM serial interface, unless the caller asks for
-  // NCM-only (legacy single-function NCM build). In composite mode the
-  // CDC block is always present and NCM is added afterwards by
-  // Adafruit_USBD_NET::begin() via addInterface().
-  if (!ncm)
+  // Add the always-on CDC ACM serial interface. In composite mode the CDC
+  // block is always present and additional functions (HID, MSC, NCM) are
+  // added afterwards by their respective begin() calls via addInterface().
   {
     uint8_t itfnum = allocInterface(2);
     uint8_t strid = addStringDescriptor("TinyUSB Serial");
     uint16_t const mps =
         (TUD_OPT_HIGH_SPEED ? 512 : 64); // TODO actual link speed
 
-    // CDC ACM WITHOUT the interrupt notification endpoint. The ESP32-S3 FS
-    // controller only has 5 IN endpoints total (including EP0), so a full
-    // CDC + HID + NCM composite (which needs 6 IN endpoints with a CDC
-    // notification EP) overflows the controller and SET_CONFIGURATION
-    // silently aborts -> Windows shows Code 10 on the composite parent.
-    // Dropping the notification EP means we cannot send the Serial_State
-    // notification (DCD/DSR/Break) but SET_LINE_CODING / SET_CONTROL_LINE_STATE
-    // still work over the control endpoint, which is all usbser.sys actually
-    // requires for an ACM serial port. bmCapabilities advertises only line
-    // coding requests (bit 1 cleared since we no longer support the
-    // associated Serial_State notification per CDC-PSTN spec section 6.3.5).
-    uint8_t const desc_cdc_no_notif[8 + 9 + 5 + 5 + 4 + 5 + 9 + 7 + 7] = {
-        // Interface Association
-        8, TUSB_DESC_INTERFACE_ASSOCIATION, itfnum, 2, TUSB_CLASS_CDC, CDC_COMM_SUBCLASS_ABSTRACT_CONTROL_MODEL, CDC_COMM_PROTOCOL_NONE, 0,
-        // CDC Control Interface (bNumEndpoints = 0)
-        9, TUSB_DESC_INTERFACE, itfnum, 0, 0, TUSB_CLASS_CDC, CDC_COMM_SUBCLASS_ABSTRACT_CONTROL_MODEL, CDC_COMM_PROTOCOL_NONE, strid,
-        // CDC Header
-        5, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_HEADER, U16_TO_U8S_LE(0x0120),
-        // CDC Call Management
-        5, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_CALL_MANAGEMENT, 0, (uint8_t)((itfnum) + 1),
-        // CDC ACM: support_send_break only (no Serial_State notification)
-        4, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_ABSTRACT_CONTROL_MANAGEMENT, 4,
-        // CDC Union
-        5, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_UNION, itfnum, (uint8_t)((itfnum) + 1),
-        // CDC Data Interface
-        9, TUSB_DESC_INTERFACE, (uint8_t)((itfnum) + 1), 0, 2, TUSB_CLASS_CDC_DATA, 0, 0, 0,
-        // Endpoint Out
-        7, TUSB_DESC_ENDPOINT, 0x03, TUSB_XFER_BULK, U16_TO_U8S_LE(mps), 0,
-        // Endpoint In
-        7, TUSB_DESC_ENDPOINT, 0x84, TUSB_XFER_BULK, U16_TO_U8S_LE(mps), 0,
-    };
+    if (s_includeCdcNotifEp) {
+      // Spec-compliant CDC ACM with interrupt-IN notification endpoint.
+      // Hardcoded EPs 0x85 (notif), 0x03 (out), 0x84 (in) match the legacy
+      // upstream layout the EP allocator was tuned for (see allocEndpoint's
+      // ESP32-IDF skip logic in Adafruit_USBD_Device.h).
+      uint8_t const desc_cdc[TUD_CDC_DESC_LEN] = {
+          TUD_CDC_DESCRIPTOR(itfnum, strid, 0x85, 64, 0x03, 0x84, mps)};
+      memcpy(_desc_cfg + _desc_cfg_len, desc_cdc, sizeof(desc_cdc));
+      _desc_cfg_len += sizeof(desc_cdc);
+    } else {
+      // CDC ACM WITHOUT the interrupt notification endpoint. The ESP32-S3 FS
+      // controller only has 5 IN endpoints total (including EP0), so a full
+      // CDC + HID + NCM composite (which needs 6 IN endpoints with a CDC
+      // notification EP) overflows the controller and SET_CONFIGURATION
+      // silently aborts -> Windows shows Code 10 on the composite parent.
+      // Dropping the notification EP means we cannot send the Serial_State
+      // notification (DCD/DSR/Break) but SET_LINE_CODING / SET_CONTROL_LINE_STATE
+      // still work over the control endpoint, which is all usbser.sys actually
+      // requires for an ACM serial port. bmCapabilities advertises only line
+      // coding requests (bit 1 cleared since we no longer support the
+      // associated Serial_State notification per CDC-PSTN spec section 6.3.5).
+      // Out of spec, only used when NCM has explicitly requested it.
+      uint8_t const desc_cdc_no_notif[8 + 9 + 5 + 5 + 4 + 5 + 9 + 7 + 7] = {
+          // Interface Association
+          8, TUSB_DESC_INTERFACE_ASSOCIATION, itfnum, 2, TUSB_CLASS_CDC, CDC_COMM_SUBCLASS_ABSTRACT_CONTROL_MODEL, CDC_COMM_PROTOCOL_NONE, 0,
+          // CDC Control Interface (bNumEndpoints = 0)
+          9, TUSB_DESC_INTERFACE, itfnum, 0, 0, TUSB_CLASS_CDC, CDC_COMM_SUBCLASS_ABSTRACT_CONTROL_MODEL, CDC_COMM_PROTOCOL_NONE, strid,
+          // CDC Header
+          5, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_HEADER, U16_TO_U8S_LE(0x0120),
+          // CDC Call Management
+          5, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_CALL_MANAGEMENT, 0, (uint8_t)((itfnum) + 1),
+          // CDC ACM: support_send_break only (no Serial_State notification)
+          4, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_ABSTRACT_CONTROL_MANAGEMENT, 4,
+          // CDC Union
+          5, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_UNION, itfnum, (uint8_t)((itfnum) + 1),
+          // CDC Data Interface
+          9, TUSB_DESC_INTERFACE, (uint8_t)((itfnum) + 1), 0, 2, TUSB_CLASS_CDC_DATA, 0, 0, 0,
+          // Endpoint Out
+          7, TUSB_DESC_ENDPOINT, 0x03, TUSB_XFER_BULK, U16_TO_U8S_LE(mps), 0,
+          // Endpoint In
+          7, TUSB_DESC_ENDPOINT, 0x84, TUSB_XFER_BULK, U16_TO_U8S_LE(mps), 0,
+      };
 
-    memcpy(_desc_cfg + _desc_cfg_len, desc_cdc_no_notif, sizeof(desc_cdc_no_notif));
-    _desc_cfg_len += sizeof(desc_cdc_no_notif);
+      memcpy(_desc_cfg + _desc_cfg_len, desc_cdc_no_notif, sizeof(desc_cdc_no_notif));
+      _desc_cfg_len += sizeof(desc_cdc_no_notif);
+    }
   }
 
   // Update configuration descriptor
